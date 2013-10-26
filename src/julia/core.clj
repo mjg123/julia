@@ -33,8 +33,9 @@
   (fn [^complex z]
     ;; example of an iteration function
     ;; z_n = z_(n-1)^p + c
-    ;; c controls the "shape" of the set
+    ;; c controls the "shape" of the set, is read in from mouse position
     ;; p controls the degree of rotational symmetry (ie number of arms)
+    ;;   is hard-coded in the draw fn below probably
     (plus c (reduce times (repeat p z)))))
 
 
@@ -48,7 +49,6 @@
 ;; Quil stuff
 
 (defn setup []
-  (smooth)
   (frame-rate 20)
   (color-mode :hsb 100))
 
