@@ -2,6 +2,7 @@
   (:use [quil.core]))
 
 ;; This is complex
+;; http://stackoverflow.com/questions/11824815/fast-complex-number-arithmetic-in-clojure
 
 (deftype complex [^double real ^double imag])
 
