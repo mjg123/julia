@@ -29,11 +29,13 @@
 
 ;; The iteration function
 
-(defn ifn [c n]
+(defn ifn [c p]
   (fn [^complex z]
     ;; example of an iteration function
-    ;; z_n = z_(n-1)^2 + c
-    (plus c (reduce times (repeat n z)))))
+    ;; z_n = z_(n-1)^p + c
+    ;; c controls the "shape" of the set
+    ;; p controls the degree of rotational symmetry (ie number of arms)
+    (plus c (reduce times (repeat p z)))))
 
 
 ;; the iteration & thresholding
@@ -43,19 +45,11 @@
                      (take max-its
                            (iterate itfn z_n)))))
 
-(defn calc-array [r]
-  (let [r-inv (double (/ 1 r))
-        scale (partial * r-inv)]
-    (for [x (map scale (range (- r) r))
-          y (map scale (range (- r) r))]
-      (complex. x y))))
-
-
 ;; Quil stuff
 
 (defn setup []
   (smooth)
-  (frame-rate 1)
+  (frame-rate 20)
   (color-mode :hsb 100))
 
 (defn pt-to-plane [x y w h]
@@ -73,8 +67,8 @@
          c (pt-to-plane (mouse-x) (mouse-y) w h)]
      (doseq [x (range w)
              y (range h)]
-       (let [iteration-fn (ifn c 5) ;; NB 2nd arg controls # of 'arms'
-             v (do-iterations 10 4 (pt-to-plane x y w h))]
+       (let [iteration-fn (ifn c 5)
+             v (do-iterations 10 4 (pt-to-plane x y w h) iteration-fn)]
          (apply stroke (col-of v))
          (point x y))))))
 
