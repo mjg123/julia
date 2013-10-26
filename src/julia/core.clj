@@ -35,7 +35,7 @@
     ;; z_n = z_(n-1)^p + c
     ;; c controls the "shape" of the set, is read in from mouse position
     ;; p controls the degree of rotational symmetry (ie number of arms)
-    ;;   is hard-coded in the draw fn below probably
+    ;;   is hard-coded in the draw fn below
     (plus c (reduce times (repeat p z)))))
 
 
@@ -53,6 +53,7 @@
   (color-mode :hsb 100))
 
 (defn pt-to-plane [x y w h]
+  ;; maps (x,y) to a point in the range ((-2,-2),(2,2))
   (let [s 2]
     (complex. (* 2 s (- (double (/ x w)) 0.5))
               (* 2 s (- (double (/ y h)) 0.5)))))
