@@ -43,9 +43,15 @@
 ;; the iteration & thresholding
 
 (defn count-iterations [max-its escape z_n itfn]
-  (count (take-while #(< (mag2 %) escape)
-                     (take max-its
-                           (iterate itfn z_n)))))
+
+  (let [escape-pred #(> (mag2 %) escape)]
+
+    (loop [it-count 0
+           z z_n]
+      (if (or (escape-pred z)
+              (< max-its it-count))
+        it-count
+        (recur (inc it-count) (itfn z))))))
 
 ;; Quil stuff
 
