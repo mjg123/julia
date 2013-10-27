@@ -42,7 +42,7 @@
 
 ;; the iteration & thresholding
 
-(defn do-iterations [max-its escape z_n itfn]
+(defn count-iterations [max-its escape z_n itfn]
   (count (take-while #(< (mag2 %) escape)
                      (take max-its
                            (iterate itfn z_n)))))
@@ -59,19 +59,19 @@
     (complex. (* 2 s (- (double (/ x w)) 0.5))
               (* 2 s (- (double (/ y h)) 0.5)))))
 
-(defn col-of [v]
-  [(int (* 10 v)) 100 100])
+(defn hue-of [v]
+  (* 10 v))
 
 (defn draw []
   (time
    (let [w (width)
          h (height)
-         c (pt-to-plane (mouse-x) (mouse-y) w h)]
+         c (pt-to-plane (mouse-x) (mouse-y) w h)
+         iteration-fn (ifn c 5)]
      (doseq [x (range w)
              y (range h)]
-       (let [iteration-fn (ifn c 5)
-             v (do-iterations 10 4 (pt-to-plane x y w h) iteration-fn)]
-         (apply stroke (col-of v))
+       (let [v (count-iterations 10 4 (pt-to-plane x y w h) iteration-fn)]
+         (stroke (hue-of v) 100 100)
          (point x y))))))
 
 
@@ -79,4 +79,4 @@
   :title "Julia"
   :setup setup
   :draw draw
-  :size [200 200])
+  :size [480 480])
