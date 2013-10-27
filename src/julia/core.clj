@@ -65,14 +65,14 @@
   (color-mode :hsb 100))
 
 (defn pt-to-plane [x y w h]
-  ;; maps (x,y) to a point on the complext plane
+  ;; maps (x,y) to a point on the complex plane
   ;; in the range ((-2,-2),(2,2))
 
-  ;; this was actually the fn which cost us the most time.
+  ;; this was actually a fn which cost us a lot of time each iteration.
   ;; It used to say: (double (/ x w)) but we spent a lot of time
   ;; in clojure.lang.Ratio#doubleVal so coercing the numerator
   ;; to a double before the division avoids the creation & use of
-  ;; the Ratio
+  ;; the Ratio objects
 
   (complex. (* 4 (- (/ (double x) w) 0.5))
             (* 4 (- (/ (double y) h) 0.5))))
@@ -80,7 +80,7 @@
 (defn rgb-of [v]
   ;; maps iteration-count (0-10) to a colour
   (color
-   (+ 15 (* 5 v))
+   (+ 15 (* 8 v))
    70
    70))
 
