@@ -55,9 +55,8 @@
 
 (defn pt-to-plane [x y w h]
   ;; maps (x,y) to a point in the range ((-2,-2),(2,2))
-  (let [s 2]
-    (complex. (* 2 s (- (double (/ x w)) 0.5))
-              (* 2 s (- (double (/ y h)) 0.5)))))
+  (complex. (* 4 (- (/ (double x) w) 0.5))
+            (* 4 (- (/ (double y) h) 0.5))))
 
 (defn hue-of [v]
   (* 10 v))
