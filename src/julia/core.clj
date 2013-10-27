@@ -17,7 +17,7 @@
 
 ;; The iteration function
 
-(defn ifn [c p]
+(defn ifn [^complex c p]
   (let [rc (.real c)
         ic (.imag c)]
 
