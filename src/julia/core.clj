@@ -37,7 +37,11 @@
     ;; c controls the "shape" of the set, is read in from mouse position
     ;; p controls the degree of rotational symmetry (ie number of arms)
     ;;   is hard-coded in the draw fn below
-    (plus c (reduce times (repeat p z)))))
+    (loop [i (dec p)
+           z_n z]
+      (if (zero? i)
+        (plus c z_n)
+        (recur (dec i) (times z_n z))))))
 
 
 ;; the iteration & thresholding
@@ -65,7 +69,7 @@
             (* 4 (- (/ (double y) h) 0.5))))
 
 (defn hue-of [v]
-  (* 10 v))
+  (* 5 v))
 
 (defn draw []
   (time
