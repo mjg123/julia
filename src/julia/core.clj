@@ -45,6 +45,10 @@
 
 (defn count-iterations [max-its escape z_n itfn]
 
+  ;; this used to be done with a combination of count, take-while,
+  ;; iterate & repeat but LazySeq was a bottleneck so manual looping
+  ;; and counting iterations
+
   (let [escape-pred #(> (mag2 %) escape)]
 
     (loop [it-count 0
@@ -61,7 +65,15 @@
   (color-mode :hsb 100))
 
 (defn pt-to-plane [x y w h]
-  ;; maps (x,y) to a point in the range ((-2,-2),(2,2))
+  ;; maps (x,y) to a point on the complext plane
+  ;; in the range ((-2,-2),(2,2))
+
+  ;; this was actually the fn which cost us the most time.
+  ;; It used to say: (double (/ x w)) but we spent a lot of time
+  ;; in clojure.lang.Ratio#doubleVal so coercing the numerator
+  ;; to a double before the division avoids the creation & use of
+  ;; the Ratio
+
   (complex. (* 4 (- (/ (double x) w) 0.5))
             (* 4 (- (/ (double y) h) 0.5))))
 
