@@ -37,11 +37,14 @@
     ;; c controls the "shape" of the set, is read in from mouse position
     ;; p controls the degree of rotational symmetry (ie number of arms)
     ;;   is hard-coded in the draw fn below
-    (loop [i (dec p)
-           z_n z]
-      (if (zero? i)
-        (plus c z_n)
-        (recur (dec i) (times z_n z))))))
+
+
+    ;; NB this is hard-coded for p=5 to test performance
+    (let [r (double (.real z))
+          i (double (.imag z))]
+      (plus c
+            (complex. (+ (* r r r r r) (* -10 r r r i i) (* 5 r i i i i))
+                      (+ (* i i i i i) (* -10 r r i i i) (* 5 r r r r i)))))))
 
 
 ;; the iteration & thresholding
