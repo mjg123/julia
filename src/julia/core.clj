@@ -61,7 +61,7 @@
 ;; Quil stuff
 
 (defn setup []
-  (frame-rate 20)
+  (frame-rate 50)
   (color-mode :hsb 100))
 
 (defn pt-to-plane [x y w h]
@@ -77,24 +77,34 @@
   (complex. (* 4 (- (/ (double x) w) 0.5))
             (* 4 (- (/ (double y) h) 0.5))))
 
-(defn hue-of [v]
-  (+ 15 (* 5 v)))
+(defn rgb-of [v]
+  ;; maps iteration-count (0-10) to a colour
+  (color
+   (+ 15 (* 5 v))
+   70
+   70))
 
 (defn draw []
   (time
    (let [w (width)
          h (height)
          c (pt-to-plane (mouse-x) (mouse-y) w h)
-         iteration-fn (ifn c 5)]
+         iteration-fn (ifn c 5)
+         pixels (pixels)]
      (doseq [x (range w)
              y (range h)]
        (let [v (count-iterations 10 4 (pt-to-plane x y w h) iteration-fn)]
-         (stroke (hue-of v) 70 70)
-         (point x y))))))
+         ;; just here we used to use 'stroke and 'point
+         ;; but changing to direct access to an array of int
+         ;; representing the screen buffer gave an order of
+         ;; magnitude improvement in speed
+         (aset-int pixels (+ x (* y w)) (rgb-of v))))
+     (update-pixels))))
 
 
 (defsketch julia
   :title "Julia"
   :setup setup
   :draw draw
+  :renderer :p2d
   :size [480 480])
