@@ -1,24 +1,11 @@
 (ns julia.core
   (:use [quil.core]))
 
-;; This is complex
+;; Advice to use deftype from:
 ;; http://stackoverflow.com/questions/11824815/fast-complex-number-arithmetic-in-clojure
+;; but 'plus and 'times are not needed as ifn does its own expansion now.
 
 (deftype complex [^double real ^double imag])
-
-(defn plus [^complex z1 ^complex z2]
-  (let [x1 (double (.real z1))
-        y1 (double (.imag z1))
-        x2 (double (.real z2))
-        y2 (double (.imag z2))]
-    (complex. (+ x1 x2) (+ y1 y2))))
-
-(defn times [^complex z1 ^complex z2]
-  (let [x1 (double (.real z1))
-        y1 (double (.imag z1))
-        x2 (double (.real z2))
-        y2 (double (.imag z2))]
-    (complex. (- (* x1 x2) (* y1 y2)) (+ (* x1 y2) (* y1 x2)))))
 
 (defn mag2 [^complex z]
   ;; magnitude squared
@@ -79,7 +66,7 @@
             (* 4 (- (/ (double y) h) 0.5))))
 
 (defn hue-of [v]
-  (+ 5 (* 5 v)))
+  (+ 15 (* 5 v)))
 
 (defn draw []
   (time
@@ -90,7 +77,7 @@
      (doseq [x (range w)
              y (range h)]
        (let [v (count-iterations 10 4 (pt-to-plane x y w h) iteration-fn)]
-         (stroke (hue-of v) 100 100)
+         (stroke (hue-of v) 70 70)
          (point x y))))))
 
 
