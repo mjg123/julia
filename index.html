@@ -24,7 +24,7 @@
 
   <p><a href="https://github.com/mjg123">Matthew</a>, Oct 28, 2013.</p>
 
-<p>At work a friend of mine was talking about <a href="http://en.wikipedia.org/wiki/Julia_set">Julia Set</a> and how he had learned about them from the book <a href="http://www.amazon.co.uk/Chaos-Making-Science-James-Gleick/dp/0749386061">Chaos: Making a New Science</a>.  The maths is surprisingly simple and the results look great.  Here's a bit about Julia Sets, implementing them in Clojure, and performance tuning the code to make it run real sweet.</p>
+<p>At work a friend of mine was talking about <a href="http://en.wikipedia.org/wiki/Julia_set">Julia Sets</a> and how he had learned about them from the book <a href="http://www.amazon.co.uk/Chaos-Making-Science-James-Gleick/dp/0749386061">Chaos: Making a New Science</a>.  The maths is surprisingly simple and the results look great.  Here's a bit about Julia Sets, implementing them in Clojure, and performance tuning the code to make it run real sweet.</p>
 
   <h2>Julia Sets</h2>
 
@@ -36,7 +36,7 @@
   <li>If the value of <span class="m">z</span> diverges (ie tends to go to infinity) then <span class="m">z</span> is outside the Julia Set defined by <span class="m">f</span>, otherwise it is inside</li>
 </ul>
 
-<p>Functions are usually like <span class="m">f(z) = z<sup>n</sup> + c</span>.  Of course we have to put limits on how long we can wait for the value of <span class="m">z</span> to diverge (I used ten iterations), and what we mean by "infinity" (I used the number 2, close enough right?).  So, if a starting value of <span class="m">z</span> had reached a <a href="http://en.wikipedia.org/wiki/Absolute_value#Complex_numbers">magnitude</a> of <span class="m">4</span> within <span class="m">10</span> iterations it was outside the Julia Set, otherwise it was inside.  If a point is inside the set, we can record how many iterations the escape took.  We make it all look pretty by plotting the number of iterations for each point, on the <a href="http://en.wikipedia.org/wiki/Complex_plane">complex plane</a>.</p>
+<p>Functions are usually like <span class="m">f(z) = z<sup>n</sup> + c</span>.  Of course we have to put limits on how long we can wait for the value of <span class="m">z</span> to diverge (I used ten iterations), and what we mean by "infinity" (I used the number 2, close enough right?).  So, if a starting value of <span class="m">z</span> had reached a <a href="http://en.wikipedia.org/wiki/Absolute_value#Complex_numbers">magnitude</a> of <span class="m">2</span> within <span class="m">10</span> iterations it was outside the Julia Set, otherwise it was inside.  If a point is outside the set, we can record how many iterations the escape took.  We make it all look pretty by plotting the number of iterations for each point, on the <a href="http://en.wikipedia.org/wiki/Complex_plane">complex plane</a>.</p>
 
 <img src="doc/5-arm.png" alt="a 5-arm Julia Set"/>
 
@@ -73,7 +73,7 @@
 
   <h4>Implementing the iteration function</h4>
 
-<p>As above, we're going to use <span class="m">f(z) = z<sup>n</sup> + c</span>.  In particular I'm going to set <span class="m">n=5</span> because I like the number 5 and it will give us a 5-arm fractal to look at.  I will get the value of <span class="m">c</span> (a complex number) by reading in the mouse pointer's position over the image of the set on the complex plane.</p>
+<p>As above, we're going to use <span class="m">f(z) = z<sup>n</sup> + c</span>.  In particular I'm going to set <span class="m">n=5</span> because I like the number 5 and it will give us a 5-arm fractal to look at.  I will get the value of <span class="m">c</span> (a complex number) by reading in the mouse pointer's position over the image of the set on the complex plane.  That means we can swish the mouse around and animate the set which will look lovely.</p>
 
 <div class="c">(defn ifn [c n]
   (fn [^complex z]
@@ -92,7 +92,7 @@
                            (iterate itfn z_n)))))
 </div>
 
-<p>I should explain that the <span class="c">mag2</span> function returns (the magnitude of the complex number) squared, to avoid taking a square root.  So <span class="c">max_its</span> is 10, <span class="c">escape</span> is 2<sup>2</sup> = 4, <span class="c">z_n</span> is the point on the plane we're considering, and <span class="c">itfn</span> is something we made using <span class="c">ifn</span> above.</p>
+<p>I should explain that the <span class="c">mag2</span> function returns (the magnitude of the complex number)<sup>2</sup>, to avoid taking a square root (more from habit than any thought about performance).  So <span class="c">max_its</span> is 10, <span class="c">escape</span> is 2<sup>2</sup> = 4, <span class="c">z_n</span> is the point on the plane we're considering, and <span class="c">itfn</span> is something we made using <span class="c">ifn</span> above.</p>
 
 <p>We now have everything we need, for the maths at least.  How are we going to show our fractal to our eyes?</p>
 
@@ -215,12 +215,12 @@
 
 <h4>Using Quil/Processing properly</h4>
 
-<p>This was as fast as I could get the code to run without looking at how I was using Quil.  Turning off anti-aliasing sped things up (a lot), my fractal generator was now runing at 3fps.  Remember that without VisualVM I would have <em>no idea</em> where the bottlenecks were but now I could easily see that >99% of time was spent in processing code, setting stroke colour and painting pixels.  So I spent a while with the Quil and Processing documentation.</p>
+<p>This was as fast as I could get the code to run without looking at how I was using Quil.  Turning off anti-aliasing sped things up (a lot), my fractal generator was now runing at 3fps.  Remember that without VisualVM I would have <em>no idea</em> where the bottlenecks were but now I could easily see that >99% of time was spent in Processing code (via Quil), setting stroke colour and painting pixels.  So I spent a while with the Quil and Processing documentation.</p>
 
-<p>The final fix was to use Clojure's <span class="c">aset-int</span> to write colour values directly to the Processing video buffer rather than going through the higher-level API of <span class="c">stroke</span> and <span class="c">point</span>.  The exact code isn't relevant here but you can get it from the repo linked below.  Now the app runs at 20-25fps, an increase of about 50x from the first cut and pleasantly interactive.  I'm pleased with that.</p>
+<p>The final fix was to use Clojure's <span class="c">aset-int</span> to write colour values directly to the Processing video buffer rather than going through the higher-level API of <span class="c">stroke</span> and <span class="c">point</span>.  The exact code isn't relevant here but you can get it from the repo linked below.  Now the app runs at 20-25fps, an increase of about 50x from the first cut and pleasantly interactive.  I'm pleased with that.  The bottleneck is now in <span class="c">aset-int</span> itself and I don't think there's much I can do about that.</p>
 
 <h2>In conclusion</h2>
 
-<p>What did I learn?  No so much about <em>writing fast Clojure</em>, but that's not the point.  Performance tuning is about finding the bottlenecks and elimintaing them, in which pursuit changing how I used Quil was used was about 20x more useful than writing faster Clojure.  Know the tools and use them appropriately rather than guessing.  Have fun writing Clojure and try VisualVM sometime.  <a href="https://github.com/mjg123/julia">Download the code</a> and gawp at the pretty pictures.  Fractals are cool.  By all means give Quil a try!  Thanks for reading.</p>
+<p>What did I learn?  Not so much about <em>writing fast Clojure</em>, but that's not the point.  Performance tuning is about finding the bottlenecks and elimintaing them, in which pursuit changing how I used Quil was used was about 20x more useful than writing faster Clojure.  Know the tools and use them appropriately rather than guessing.  Have fun writing Clojure and try VisualVM sometime.  <a href="https://github.com/mjg123/julia">Download the code</a> and gawp at the pretty pictures.  Fractals are cool.  By all means give Quil a try!  Thanks for reading, I hope it's been helpful.</p>
 
 </html>
