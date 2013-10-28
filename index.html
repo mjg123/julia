@@ -3,7 +3,224 @@
 
   <title>Julia Sets and Performance Tuning in Clojure</title>
 
+  <style>
+    body {width: 80%; margin:auto;}
+    .m {
+      font-style: italic;
+      font-size: 1.2em;
+      color: #462;
+    }
+    .c {
+      background-color: #EFC;
+      display: inline-block;
+      padding: 2px;
+      border-radius: 2px;
+      font-family: monospace;
+      white-space: pre;
+    }
+  </style>
+
   <h1>Julia Sets and Performance Tuning in Clojure</h1>
 
+  <p><a href="https://github.com/mjg123">Matthew</a>, Oct 28, 2013.</p>
+
+<p>At work a friend of mine was talking about <a href="http://en.wikipedia.org/wiki/Julia_set">Julia Set</a> and how he had learned about them from the book <a href="http://www.amazon.co.uk/Chaos-Making-Science-James-Gleick/dp/0749386061">Chaos: Making a New Science</a>.  The maths is surprisingly simple and the results look great.  Here's a bit about Julia Sets, implementing them in Clojure, and performance tuning the code to make it run real sweet.</p>
+
+  <h2>Julia Sets</h2>
+
+<p>How:</p>
+
+<ul>
+  <li>Start with a complex number <span class="m">z = a + bi</span></li>
+  <li>Apply some function <span class="m">f</span> to <span class="m">z</span> over and over</li>
+  <li>If the value of <span class="m">z</span> diverges (ie tends to go to infinity) then <span class="m">z</span> is outside the Julia Set defined by <span class="m">f</span>, otherwise it is inside</li>
+</ul>
+
+<p>Functions are usually like <span class="m">f(z) = z<sup>n</sup> + c</span>.  Of course we have to put limits on how long we can wait for the value of <span class="m">z</span> to diverge (I used ten iterations), and what we mean by "infinity" (I used the number 2, close enough right?).  So, if a starting value of <span class="m">z</span> had reached a <a href="http://en.wikipedia.org/wiki/Absolute_value#Complex_numbers">magnitude</a> of <span class="m">4</span> within <span class="m">10</span> iterations it was outside the Julia Set, otherwise it was inside.  If a point is inside the set, we can record how many iterations the escape took.  We make it all look pretty by plotting the number of iterations for each point, on the <a href="http://en.wikipedia.org/wiki/Complex_plane">complex plane</a>.</p>
+
+<img src="doc/5-arm.png" alt="a 5-arm Julia Set"/>
+
+  <p>That bit of handwaving is all I'm going to say about the maths, but it's pretty much all I knew when I started out.  Here's a few links that I found useful: [<a href="http://www.karlsims.com/julia.html">1 (with cool videos)</a>, <a href="http://aleph0.clarku.edu/~djoyce/julia/julia.html">2 (graphs)</a>, <a href="http://mathworld.wolfram.com/JuliaSet.html">3 (mathsy, but excellent)</a>, <a href="http://en.wikipedia.org/wiki/Julia_set">4 (wikipedia)</a>]
+</p>
+
+  <h2>Implementing in Clojure</h2>
+
+  <h3>The Julia Set</h3>
+
+  <h4>Complex Numbers</h4>
+
+<p>Straight away we find that Clojure doesn't have a complex-number data type.  It's dynamically typed though, and offers real nice literal collections so my first thought was to represent a complex number <span class="m">z = a + ib</span> as a 2-element vector.</p>
+
+  <div class="c">(def z [a b])</div>
+
+<p>But, literally the top hit on <a href="https://www.google.co.uk/search?q=clojure+complex+numbers">a Google search for Clojure complex numbers</a> is <a href="http://stackoverflow.com/questions/11824815/fast-complex-number-arithmetic-in-clojure">a StackOverflow post recommending a way</a> using <span class="c">deftype</span>, and including code for <span class="c">times</span> and <span class="c">plus</span> which I knew I'd need.  So I used that from the outset:</p>
+
+  <div class="c">(deftype complex [^double real ^double imag])
+
+(defn plus [^complex z1 ^complex z2]
+  (let [x1 (double (.real z1))
+        y1 (double (.imag z1))
+        x2 (double (.real z2))
+        y2 (double (.imag z2))]
+    (complex. (+ x1 x2) (+ y1 y2))))
+
+(defn times [^complex z1 ^complex z2]
+  (let [x1 (double (.real z1))
+        y1 (double (.imag z1))
+        x2 (double (.real z2))
+        y2 (double (.imag z2))]
+    (complex. (- (* x1 x2) (* y1 y2)) (+ (* x1 y2) (* y1 x2)))))</div>
+
+  <h4>Implementing the iteration function</h4>
+
+<p>As above, we're going to use <span class="m">f(z) = z<sup>n</sup> + c</span>.  In particular I'm going to set <span class="m">n=5</span> because I like the number 5 and it will give us a 5-arm fractal to look at.  I will get the value of <span class="m">c</span> (a complex number) by reading in the mouse pointer's position over the image of the set on the complex plane.</p>
+
+<div class="c">(defn ifn [c n]
+  (fn [^complex z]
+    (plus c (reduce times (repeat n z)))))
+</div>
+
+<p>This is a function that returns a function.  Call <span class="c">ifn</span> passing <span class="c">c</span> and <span class="c">n</span>, and you'll get back a function that you can iteratively pass a single complex number <span class="c">z</span> to.</p>
+
+  <h4>Iterating the iteration function</h4>
+
+<p>In English, we need to:  count the length of the sequence generated by iterating the function from above, stopping either when the value being iterated "escapes" by exceeding some threshold, or when we have iterated some maximum number of times.  I wrote it in (what I consider to be) pretty idiomatic Clojure code using some of Clojure's excellent core functions.</p>
+
+<div class="c">(defn do-iterations [max-its escape z_n itfn]
+  (count (take-while #(< (mag2 %) escape)
+                     (take max-its
+                           (iterate itfn z_n)))))
+</div>
+
+<p>I should explain that the <span class="c">mag2</span> function returns (the magnitude of the complex number) squared, to avoid taking a square root.  So <span class="c">max_its</span> is 10, <span class="c">escape</span> is 2<sup>2</sup> = 4, <span class="c">z_n</span> is the point on the plane we're considering, and <span class="c">itfn</span> is something we made using <span class="c">ifn</span> above.</p>
+
+<p>We now have everything we need, for the maths at least.  How are we going to show our fractal to our eyes?</p>
+
+  <h3>Drawing it</h3>
+
+<p>Enter <a href="https://github.com/quil/quil">Quil</a>, an excellent library for drawing and animation in Clojure, built on top of <a href="http://processing.org/">Processing</a>.  Quil asks 3 things of us:</p>
+
+<ul>
+  <li>a <span class="c">setup</span> fn, called once at the start</li>
+  <li>a <span class="c">draw</span> fn, called every time Quil is ready to draw a frame</li>
+  <li>a sketch, created with the <span class="c">defsketch</span> macro, defining the window's title &amp; size, and a few other things.</li>
+</ul>
+
+<p>Really, it's only the <span class="c">draw</span> function that's worth going into here, with a couple of helper functions:</p>
+
+<div class="c">(defn pt-to-plane [x y w h]
+  ;; maps a pixel co-ordinate to a point on the complex plane
+  (let [s 2]
+    (complex. (* 2 s (- (double (/ x w)) 0.5))
+              (* 2 s (- (double (/ y h)) 0.5)))))
+
+(defn col-of [v]
+  [(int (* 10 v)) 100 100])
+
+(defn draw []
+  (time
+   (let [w (width)
+         h (height)
+         c (pt-to-plane (mouse-x) (mouse-y) w h)]
+
+     (doseq [x (range w)
+             y (range h)]
+
+       (let [iteration-fn (ifn c 5)
+             v (do-iterations 10 4 (pt-to-plane x y w h) iteration-fn)]
+
+         (apply stroke (col-of v))
+         (point x y))))))
+</div>
+
+<p>So, we <span class="c">let</span> a few things, including <span class="c">c</span> which we get from the mouse pointer's position.  Then we use <span class="c">doseq</span> in exactly the same way as a nested for-loop.  For each (x,y) pair we get the relevant <span class="c">iteration-fn</span>, then iterate it.  Once we have the number of iterations that point took to escape, we can use Quil fns <span class="c">stroke</span> and <span class="c">point</span> to draw the dot in the right colour.  Immediately we get radiant and beautiful Julia Sets, all the more awesome because <em>we made them ourselves!</em>  Isn't programming brilliant?!</p>
+
+<p>But, seriously, y u so slow.  Oh god.  I mean, the window's ony 480x480 pixels, but it takes 2.5 seconds to draw a single frame?</p>
+
+  <h2>Performance Tuning</h2>
+
+<p>Now this is an interesting bit.  I'd been looking for an opportunity to try some of the JVM profiling tools that I know from Java programming on some Clojure code.  Maybe before we start you should have a guess about what the hotspots are.  I did and I was wrong, but I've learned not to rely on intuition for performance analysis.  We've got VisualVM after all...</p>
+
+  <h3>VisualVM</h3>
+
+<p>Since JDK1.6_07 (ie quite a long time ago) the Sun/Oracle JVMs have included a load of really helpful tools, of which VisualVM is the king for performance analysis.  Fire it up and it starts off by finding all the JVMs you're running (including itself):</p>
+
+<img src="doc/vvm1.png" alt="VisualVM at startup"/>
+
+<p>With little icons and stuff it looks pretty neat.  But why are there 4 Clojure VMs?  Well, they are:</p>
+
+<ul>
+  <li>leiningen, and...</li>
+  <li>... the nREPL server it's running, and</li>
+  <li>leiningen, and...</li>
+  <li>... the Julia Set App</li>
+</ul>
+
+<o>So, double-click on the last one and jump over to the "Sampler" tab:</p>
+
+<img src="doc/vvm2.png" alt="VisualVM after connecting to a JVM"/>
+
+<p>Have a poke around by all means, the Monitor tab is useful for spotting memory use and garbage collection.  Sampler and Profiler might be a bit confusing at first as they seem to do the same thing.  Profiler will alter (aka instrument) the running code to collect performance data (ie how much time each function call takes), and Sampler will collect the same data by repeatedly taking thread-dumps and reading through them.  Sampler is faster, and less likely to cause problems in a complex app but possibly (supposedly, maybe) less accurate.  I always use "Sampler".  Hit the "CPU" button and leave it for a while to gather data.  Then "Stop" and see what we've got:</p>
+
+<img src="doc/vvm3.png" alt="VisualVM after sampling CPU activity for a while"/>
+
+<p>That's pretty clear then.  Read through the "Method" column, and there's a few kinds of things:</p>
+
+<ul>
+  <li>Java method calls from Processing, eg <span class="c">processing.core.PGraphicsJava2D.strokeShape()</span></li>
+  <li>Java method calls from Clojure, eg <span class="c">clojure.lang.Ratio.decimalValue()</span></li>
+  <li>Clojure fns, eg <span class="c">julia.core$plus.invoke()</span></li>
+</ul>
+
+<p>I was immediately struck by how easy it is to identify which Clojure functions are showing up and where they are in my code.  Maybe this isn't surprising to you but I didn't know what to expect and was pleasantly surprised.</p>
+
+<h3>Fixing</h3>
+
+<p>I decided to look at my own code first and deal with the massive block of time in <span class="c">strokeShape</span> later on, because I wanted to change something and see the effect immediately rather than spend time reading the Quil docs to start with.  A few easy things to fix:</p>
+
+<h4>Unnecessary Ratios</h4>
+
+<div class="c">(double (/ x w))</div>
+
+<p>Creates a <span class="c">clojure.lang.Ratio</span> then converts it to a double, as x and w are both integers.  Avoid this by making <span class="c">x</span> a double first:</p>
+
+<div class="c">(/ (double x) w)</div>
+
+<h4>Lazy Seqs</h4>
+
+<p>There's a few calls involving <span class="c">clojure.lang.LazySeq</span>, which are mainly caused by my "idiomatic" <span class="c">do-iterations</span> function.  I gave it a better name and rewrote it without laziness as:<p>
+
+<div class="c">(defn count-iterations [max-its escape z_n itfn]
+
+  (let [escape-pred #(> (mag2 %) escape)]
+
+    (loop [it-count 0
+           z z_n]
+      (if (or (escape-pred z)
+              (< max-its it-count))
+        it-count
+        (recur (inc it-count) (itfn z))))))
+</div>
+
+<h4>Plus and Times</h4>
+
+<p>Another source of lazy seqs was using <span class="c">reduce</span> to call <span class="c">times</span> repeatedly.  As the number of elements in the reduction is always 5, I could rewrite the code to directly calculate the fifth power:</p>
+
+<div class="c">(fn [^complex z]
+  (let [r (double (.real z))
+        i (double (.imag z))]
+    (complex. (+ rc (* r r r r r) (* -10 r r r i i) (* 5 r i i i i))
+              (+ ic (* i i i i i) (* -10 r r i i i) (* 5 r r r r i))))
+</div>
+
+<h4>Using Quil/Processing properly</h4>
+
+<p>This was as fast as I could get the code to run without looking at how I was using Quil.  Turning off anti-aliasing sped things up (a lot), my fractal generator was now runing at 3fps.  Remember that without VisualVM I would have <em>no idea</em> where the bottlenecks were but now I could easily see that >99% of time was spent in processing code, setting stroke colour and painting pixels.  So I spent a while with the Quil and Processing documentation.</p>
+
+<p>The final fix was to use Clojure's <span class="c">aset-int</span> to write colour values directly to the Processing video buffer rather than going through the higher-level API of <span class="c">stroke</span> and <span class="c">point</span>.  The exact code isn't relevant here but you can get it from the repo linked below.  Now the app runs at 20-25fps, an increase of about 50x from the first cut and pleasantly interactive.  I'm pleased with that.</p>
+
+<h2>In conclusion</h2>
+
+<p>What did I learn?  No so much about <em>writing fast Clojure</em>, but that's not the point.  Performance tuning is about finding the bottlenecks and elimintaing them, in which pursuit changing how I used Quil was used was about 20x more useful than writing faster Clojure.  Know the tools and use them appropriately rather than guessing.  Have fun writing Clojure and try VisualVM sometime.  <a href="https://github.com/mjg123/julia">Download the code</a> and gawp at the pretty pictures.  Fractals are cool.  By all means give Quil a try!  Thanks for reading.</p>
 
 </html>
