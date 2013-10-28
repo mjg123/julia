@@ -1,6 +1,6 @@
 <!doctype html>
 <html>
-
+  <meta charset="utf-8">
   <title>Julia Sets and Performance Tuning in Clojure</title>
 
   <style>
@@ -197,7 +197,7 @@
     (loop [it-count 0
            z z_n]
       (if (or (escape-pred z)
-              (< max-its it-count))
+              (&lt; max-its it-count))
         it-count
         (recur (inc it-count) (itfn z))))))
 </div>
