@@ -36,7 +36,7 @@ build:
           lein test
 
 java6-compat:
-  box: java/6
+  box: java:6
   steps:
     - script:
         name: java version
@@ -44,7 +44,7 @@ java6-compat:
           echo "Java version: $(java -version)"
 
 java7-compat:
-  box: java/7
+  box: java:7
   steps:
     - script:
         name: java version
