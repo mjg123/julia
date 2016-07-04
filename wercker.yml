@@ -50,3 +50,10 @@ java7-compat:
         name: java version
         code: |
           echo "Java version: $(java -version)"
+
+do-release:
+  steps:
+    -script:
+      name: do release
+      code: |
+        echo "Please, release me!"
