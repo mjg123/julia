@@ -1,7 +1,5 @@
-# This references a standard debian container from the
-# Docker Hub https://registry.hub.docker.com/_/debian/
-# Read more about containers on our dev center
-# http://devcenter.wercker.com/docs/containers/index.html
+# Any docker image from a public repo can be used out of the box.
+# Private repos also supported.
 box: clojure
 
 # You can also use services such as databases. Read more on our dev center:
@@ -16,12 +14,39 @@ box: clojure
 # This is the build pipeline. Pipelines are the core of wercker
 # Read more about pipelines on our dev center
 # http://devcenter.wercker.com/docs/pipelines/index.html
+dev:
+  steps:
+    - script:
+        name: env
+        code: |
+          env
+    - script:
+        name: Run Tests
+        code: |
+          echo "TESTS WOULD BE RUN HERE"
+
 build:
     # Steps make up the actions in your pipeline
     # Read more about steps on our dev center:
     # http://devcenter.wercker.com/docs/steps/index.html
   steps:
     - script:
-        name: echo
+        name: tests
         code: |
-          echo "hello world!"
+          lein test
+
+java6-compat:
+  box: java/6
+  steps:
+    - script:
+        name: java version
+        code: |
+          echo "Java version: $(java -version)"
+
+java7-compat:
+  box: java/7
+  steps:
+    - script:
+        name: java version
+        code: |
+          echo "Java version: $(java -version)"

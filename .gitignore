@@ -1,0 +1,3 @@
+target
+.wercker
+.lein-failures
